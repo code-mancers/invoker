@@ -5,30 +5,69 @@ describe Invoker::IPC::ClientHandler do
   let(:client) { Invoker::IPC::ClientHandler.new(client_socket) }
 
   describe "add command" do
-    let(:message_object) { MM::Add.new(process_name: 'foo') }
     it "should run if read from socket" do
-      invoker_commander.expects(:on_next_tick).with("foo")
-      client_socket.string = message_object.encoded_message
+      begin
+        file = File.open("invoker.ini", "w")
+        config_data =<<-EOD
+[foo]
+command = bar
+        EOD
+        file.write(config_data)
+        file.close
+        Invoker.load_invoker_config(file, 3000)
 
-      client.read_and_execute
+        message_object = MM::Add.new(process_name: 'foo')
+        invoker_commander.expects(:on_next_tick).with { |message_object| message_object.process_name == 'foo' }
+        client_socket.string = message_object.encoded_message
+
+        client.read_and_execute
+      ensure
+        File.delete(file)
+      end
     end
   end
 
   describe "remove command" do
     it "with specific signal" do
-      message_object = MM::Remove.new(process_name: 'foo', signal: 'INT')
-      invoker_commander.expects(:on_next_tick)
-      client_socket.string = message_object.encoded_message
+      begin
+        file = File.open("invoker.ini", "w")
+        config_data =<<-EOD
+[foo]
+command = bar
+        EOD
+        file.write(config_data)
+        file.close
+        Invoker.load_invoker_config(file, 3000)
 
-      client.read_and_execute
+        message_object = MM::Remove.new(process_name: 'foo', signal: 'INT')
+        invoker_commander.expects(:on_next_tick)
+        client_socket.string = message_object.encoded_message
+
+        client.read_and_execute
+      ensure
+        File.delete(file)
+      end
     end
 
     it "with default signal" do
-      message_object = MM::Remove.new(process_name: 'foo')
-      invoker_commander.expects(:on_next_tick)
-      client_socket.string = message_object.encoded_message
+      begin
+        file = File.open("invoker.ini", "w")
+        config_data =<<-EOD
+[foo]
+command = bar
+        EOD
+        file.write(config_data)
+        file.close
+        Invoker.load_invoker_config(file, 3000)
 
-      client.read_and_execute
+        message_object = MM::Remove.new(process_name: 'foo')
+        invoker_commander.expects(:on_next_tick)
+        client_socket.string = message_object.encoded_message
+
+        client.read_and_execute
+      ensure
+        File.delete(file)
+      end
     end
   end
 

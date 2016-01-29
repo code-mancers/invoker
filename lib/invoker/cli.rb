@@ -67,7 +67,7 @@ module Invoker
       banner: "Signal to send for killing the process, default is SIGINT",
       aliases: [:s]
     def reload(name)
-      signal = options[:signal] || 'INT'
+      signal = options[:signal]
       unix_socket.send_command('reload', process_name: name, signal: signal)
     end
 
@@ -83,7 +83,7 @@ module Invoker
       banner: "Signal to send for killing the process, default is SIGINT",
       aliases: [:s]
     def remove(name)
-      signal = options[:signal] || 'INT'
+      signal = options[:signal]
       unix_socket.send_command('remove', process_name: name, signal: signal)
     end
 

@@ -46,6 +46,10 @@ module Invoker
         processes.detect { |pconfig| pconfig.label == label }
       end
 
+      def processes_by_group_or_name(process_or_group_name)
+        processes.select { |pconfig| pconfig.group == process_or_group_name || pconfig.label == process_or_group_name }
+      end
+
       private
 
       def autodetect_config_file
@@ -116,7 +120,9 @@ module Invoker
         pconfig = {
           label: section["label"] || section.key,
           dir: expand_directory(section["directory"]),
-          cmd: section["command"]
+          cmd: section["command"],
+          group: section["group"],
+          stop_signal: section['stop_signal']
         }
         pconfig['port'] = section['port'] if section['port']
         pconfig['disable_autorun'] = section['disable_autorun'] if section['disable_autorun']

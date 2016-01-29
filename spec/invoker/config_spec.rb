@@ -154,7 +154,7 @@ command = ls
   describe "Procfile" do
     it "should load Procfiles and create config object" do
       begin
-        File.open("/tmp/Procfile", "w") {|fl| 
+        File.open("/tmp/Procfile", "w") {|fl|
           fl.write <<-EOD
 web: bundle exec rails s -p $PORT
           EOD
@@ -173,7 +173,7 @@ web: bundle exec rails s -p $PORT
   describe "Copy of DNS information" do
     it "should allow copy of DNS information" do
       begin
-        File.open("/tmp/Procfile", "w") {|fl| 
+        File.open("/tmp/Procfile", "w") {|fl|
           fl.write <<-EOD
 web: bundle exec rails s -p $PORT
           EOD
@@ -186,6 +186,29 @@ web: bundle exec rails s -p $PORT
         expect(dns_cache.dns_data['web']['port']).to eql 9000
       ensure
         File.delete("/tmp/Procfile")
+      end
+    end
+  end
+
+  describe 'stop signal option' do
+    it 'allows specifying a custom stop signal for each process' do
+      begin
+        file = Tempfile.new(["config", ".ini"])
+        config_data =<<-EOD
+[postgres]
+command = postgres -D /usr/local/var/postgres
+stop_signal = TERM
+
+[redis]
+command = redis-server /usr/local/etc/redis.conf
+EOD
+        file.write(config_data)
+        file.close
+
+        config = Invoker::Parsers::Config.new(file.path, 9000)
+        config.process('postgres').stop_signal.should == 'TERM'
+      ensure
+        file.unlink()
       end
     end
   end
@@ -212,7 +235,7 @@ disable_autorun = true
 
 [panda-auth]
 command = bundle exec rails s -p $PORT
-      EOD
+EOD
         file.write(config_data)
         file.close
 
@@ -315,6 +338,53 @@ some_other_process: some_other_command
         it "aborts" do
           expect { Invoker::Parsers::Config.new(nil, 9000) }.to raise_error(SystemExit)
         end
+      end
+    end
+  end
+
+  describe "#processes_by_group_or_name" do
+    before(:each) do
+      @config_file = Tempfile.new(["config", ".ini"])
+      config_data =<<-EOD
+[postgres]
+command = postgres -D /usr/local/var/postgres
+group = db
+
+[redis]
+command = redis-server /usr/local/etc/redis.conf
+group = db
+
+[memcached]
+command = /usr/local/opt/memcached/bin/memcached
+group = db
+
+[panda-api]
+command = bundle exec rails s
+
+[panda-auth]
+command = bundle exec rails s -p $PORT
+EOD
+      @config_file.write(config_data)
+      @config_file.close
+    end
+
+    after(:each) do
+      @config_file.unlink
+    end
+
+    context 'given group name' do
+      it 'returns a list of processes that belong to that group' do
+        config = Invoker::Parsers::Config.new(@config_file.path, 9000)
+        pconfigs = config.processes_by_group_or_name('db')
+        expect(pconfigs.map(&:label)).to eq(['postgres', 'redis', 'memcached'])
+      end
+    end
+
+    context 'given process name' do
+      it 'returns the process wrapped in an array' do
+        config = Invoker::Parsers::Config.new(@config_file.path, 9000)
+        pconfigs = config.processes_by_group_or_name('panda-api')
+        expect(pconfigs.map(&:label)).to eq(['panda-api'])
       end
     end
   end
