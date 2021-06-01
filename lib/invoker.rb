@@ -94,7 +94,7 @@ module Invoker
 
     def run_without_bundler
       if defined?(Bundler)
-        Bundler.with_clean_env do
+        Bundler.with_unbundled_env do
           yield
         end
       else
